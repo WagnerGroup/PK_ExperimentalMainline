@@ -28,6 +28,8 @@ int allocate(vector <string> & words, Dynamics_generator *& sam) {
     sam=new SRK_dmc;
   else if(caseless_eq(words[0],"UNR")) 
     sam=new UNR_sampler;
+  else if(caseless_eq(words[0],"METRO")) 
+    sam=new metropolis_sampler;
   else 
     error("unknown type of sampler: ", words[0]);
 
@@ -1124,4 +1126,61 @@ int SRK_dmc::sample(int e,
   return 1;
 }
 
+
+//----------------------------------------------------------------------
+//######################################################################
+
+int metropolis_sampler::sample(int e,
+            Sample_point * sample,
+			Wavefunction * wf, Wavefunction_data * wfdata,
+			Guiding_function * guidewf, 
+			Dynamics_info & info,
+			doublevar & tstep) {
+    
+  tries++;
+  // Generate Point p1 from the wavefunction?
+  Point p1; p1.lap.Resize(wf->nfunc(), 5);
+  
+  // Calculate wave function for p1
+  wf->updateLap(wfdata, sample);
+  sample->getElectronPos(e,p1.pos);
+  wf->getLap(wfdata, e, p1.lap);
+  p1.sign=sample->overallSign();
+
+  //Starting determination of move..
+  Point p2; p2.lap.Resize(wf->nfunc(),5);
+
+  // Gaussian move
+  for(int d=0; d< 3; d++) {
+    p2.pos(d)=p1.pos(d)+sqrt(tstep)*rng.gasdev();
+  }
+
+  // Getting translation of the two points and calculating wavefunction
+  Array1 <doublevar> translate(3);
+  for(int d=0; d< 3; d++) translate(d)=p2.pos(d)-p1.pos(d);
+  sample->translateElectron(e,translate);
+  wf->updateLap(wfdata, sample);
+  wf->getLap(wfdata, e, p2.lap);
+  p2.sign=sample->overallSign();
+
+  doublevar acc= exp(2*p2.lap.amp(0,0) - 2*p1.lap.amp(0,0));
+
+  info.acceptance=acc;
+  info.orig_pos=p1.pos;
+  info.new_pos=p2.pos;
+  
+  // ACCEPT OR REJECT STEP
+  if(acc+rng.ulec()>1.0) { 
+    info.accepted=1;
+    acceptance++;
+    return 1;
+  }
+  else { 
+    sample->setElectronPos(e,p1.pos);
+    info.accepted=0;
+    return 0;
+  }
+  
+  
+}
 
