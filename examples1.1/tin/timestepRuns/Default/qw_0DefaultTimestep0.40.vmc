@@ -1,0 +1,3 @@
+method { VMC timestep 0.40 nblock 100 }
+include qw_0.sys
+trialfunc { include qw_0.threebody.opt.wfout }

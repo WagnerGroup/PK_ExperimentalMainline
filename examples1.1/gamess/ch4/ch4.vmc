@@ -1,0 +1,3 @@
+method { VMC }
+include ch4.sys
+trialfunc { include ch4.opt.wfout }

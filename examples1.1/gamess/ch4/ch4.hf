@@ -1,0 +1,5 @@
+method { VMC nblock 300 }
+
+include ch4.sys
+
+trialfunc { include ch4.slater }

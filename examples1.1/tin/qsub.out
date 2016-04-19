@@ -1,0 +1,26 @@
+----------------------------------------
+Begin Torque Prologue (Tue Mar 29 10:41:00 2016)
+Job ID:           3977524.cc-mgmt1.campuscluster.illinois.edu
+Username:         lkwagner
+Group:            mcc
+Job Name:         runTiN3pbe251.65
+Limits:           neednodes=2,nodes=2,walltime=04:00:00
+Job Queue:        secondary
+Account:          mrl
+Nodes:            taub315 taub331
+End Torque Prologue
+----------------------------------------
+----------------------------------------
+Begin Torque Epilogue (Tue Mar 29 10:53:54 2016)
+Job ID:           3977524.cc-mgmt1.campuscluster.illinois.edu
+Username:         lkwagner
+Group:            mcc
+Job Name:         runTiN3pbe251.65
+Session:          11536
+Limits:           neednodes=2,nodes=2,walltime=04:00:00
+Resources:        cput=04:51:38,energy_used=0,mem=1351216kb,vmem=7015816kb,walltime=00:12:54
+Job Queue:        secondary
+Account:          mrl
+Nodes:            taub315 taub331
+End Torque Epilogue
+----------------------------------------
