@@ -16,13 +16,10 @@ checkFiles = os.path.exists('qw_0.threebody.opt.wfout')
 checkNum = (args.low > 0) & (args.high > 0) & (args.steps > 2)
 if checkFiles == 0 and checkNum == 1:
     print "qw_0.threebody.opt.wfout file do not exist, please refer to help"
+    exit()
 # Create directory
 if os.path.exists('./timestepRuns') != 1:
     subprocess.call("mkdir timestepRuns", shell=True)
-if os.path.exists('./timestepRuns/Default') != 1:
-    subprocess.call("mkdir timestepRuns/Default", shell=True)
-if os.path.exists('./timestepRuns/Metro') != 1:
-    subprocess.call("mkdir timestepRuns/Metro", shell=True)
 
 # Get Variables
 high = args.high
@@ -33,6 +30,7 @@ stepsize = (high - low)/(steps - 1)
 
 defaultcmd = ''
 metrocmd = ''
+jsonInfo = {'default': {}, 'metro': {}}
 # Generate VMC files
 for i in range(steps):
     timestep = low + i*(high-low)/(steps - 1)
@@ -44,10 +42,16 @@ for i in range(steps):
     metroVMC.close()
     defaultcmd += 'qwalk qw_0DefaultTimestep%0.2f.vmc; ' % timestep
     metrocmd += 'qwalk qw_0MetroTimestep%0.2f.vmc; ' % timestep
+    jsonInfo['default'][i] = {'timestep': timestep, 'filename': 'qw_0DefaultTimestep%0.2f.vmc' % timestep, 'nblock': nblocks}
+    jsonInfo['metro'][i] = {'timestep': timestep, 'filename': 'qw_0MetroTimestep%0.2f.vmc' % timestep, 'nblock': nblocks}
+
+# Write JSON run information file
+jsonFile = open('runInformation.json', 'w')
+jsonFile.write(json.dumps(jsonInfo, sort_keys=True))
+jsonFile.close()
 
 procDefault = subprocess.Popen(defaultcmd, shell=True, stdout=subprocess.PIPE)
 procMetro = subprocess.Popen(metrocmd, shell=True, stdout=subprocess.PIPE)
 procDefault.wait()
 procMetro.wait()
-subprocess.call('mv qw_0Default* ./timestepRuns/Default', shell=True)
-subprocess.call('mv qw_0Metro* ./timestepRuns/Metro', shell=True)
+subprocess.call('mv qw_0Default* qw_0Metro* runInformation.json ./timestepRuns', shell=True)
