@@ -1,3 +1,0 @@
-method { VMC }
-include c.sys
-trialfunc { include c.slater }

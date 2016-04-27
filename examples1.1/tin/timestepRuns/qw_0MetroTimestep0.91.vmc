@@ -1,3 +1,0 @@
-method { VMC dynamics { METRO } timestep 0.91 nblock 1000 }
-include qw_0.sys
-trialfunc { include qw_0.threebody.opt.wfout }

@@ -1,3 +1,0 @@
-method { VMC dynamics { METRO } }
-include ch4.sys
-trialfunc { include ch4.opt.wfout }

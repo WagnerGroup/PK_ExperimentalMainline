@@ -1,3 +1,0 @@
-method { LINEAR VMC_NSTEP 1000 } 
-include qw_0.sys
-trialfunc { include qw_0.twobody.enopt.wfin }
