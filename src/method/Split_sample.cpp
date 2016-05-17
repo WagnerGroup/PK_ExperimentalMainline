@@ -30,6 +30,8 @@ int allocate(vector <string> & words, Dynamics_generator *& sam) {
     sam=new UNR_sampler;
   else if(caseless_eq(words[0],"METRO")) 
     sam=new metropolis_sampler;
+  else if(caseless_eq(words[0],"METRODRIFT")) 
+    sam=new metropolisDrift_sampler;
   else 
     error("unknown type of sampler: ", words[0]);
 
@@ -1130,6 +1132,9 @@ int SRK_dmc::sample(int e,
 //----------------------------------------------------------------------
 //######################################################################
 
+/*!
+ * Simple Metropolis Sampler
+ */
 int metropolis_sampler::sample(int e,
             Sample_point * sample,
 			Wavefunction * wf, Wavefunction_data * wfdata,
@@ -1138,7 +1143,7 @@ int metropolis_sampler::sample(int e,
 			doublevar & tstep) {
     
   tries++;
-  // Generate Point p1 from the wavefunction?
+  // Generate Point p1 from the wavefunction
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
   
   // Calculate wave function for p1
@@ -1184,3 +1189,68 @@ int metropolis_sampler::sample(int e,
   
 }
 
+
+int metropolisDrift_sampler::sample(int e,
+            Sample_point * sample,
+			Wavefunction * wf, Wavefunction_data * wfdata,
+			Guiding_function * guidewf, 
+			Dynamics_info & info,
+			doublevar & tstep) {
+    
+  tries++;
+  // Generate Point p1 from the wavefunction
+  Point p1; p1.lap.Resize(wf->nfunc(), 5);
+  
+  // Calculate wave function for p1
+  wf->updateLap(wfdata, sample);
+  sample->getElectronPos(e,p1.pos);
+  wf->getLap(wfdata, e, p1.lap);
+  p1.sign=sample->overallSign();
+
+  // Starting determination of move..
+  Point p2; p2.lap.Resize(wf->nfunc(),5);
+
+  // Gaussian move with drift
+  for(int d=0; d< 3; d++) {
+    //p1.lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
+    p2.pos(d)=p1.pos(d)+sqrt(tstep)*rng.gasdev()+p1.lap.amp(0,d+1)*tstep;
+  }
+
+  // Getting translation of the two points and calculating wavefunction
+  Array1 <doublevar> translate(3);
+  for(int d=0; d< 3; d++) translate(d)=p2.pos(d)-p1.pos(d);
+  sample->translateElectron(e,translate);
+  wf->updateLap(wfdata, sample);
+  wf->getLap(wfdata, e, p2.lap);
+  p2.sign=sample->overallSign();
+
+  // Calculate G(x' -> x) and G(x -> x') probability density function
+  doublevar lnGBack, lnGForw;
+  for (int d=0; d<3; d++) {
+    lnGBack += pow(-translate(d) - p2.lap.amp(0,d+1)*tstep, 2);
+    lnGForw += pow(translate(d) - p1.lap.amp(0,d+1)*tstep, 2);
+  }
+  lnGBack = lnGBack/(2*tstep);
+  lnGForw = lnGForw/(2*tstep);
+
+  // Calculate acceptance ratio with the probability density function
+  doublevar acc= exp(2*p2.lap.amp(0,0) - 2*p1.lap.amp(0,0) + lnGBack - lnGForw);
+
+  info.acceptance=acc;
+  info.orig_pos=p1.pos;
+  info.new_pos=p2.pos;
+  
+  // ACCEPT OR REJECT STEP
+  if(acc+rng.ulec()>1.0) { 
+    info.accepted=1;
+    acceptance++;
+    return 1;
+  }
+  else { 
+    sample->setElectronPos(e,p1.pos);
+    info.accepted=0;
+    return 0;
+  }
+  
+  
+}

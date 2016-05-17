@@ -325,7 +325,9 @@ int allocate(vector <string> & words, Dynamics_generator *& sam);
 void limDrift(Array1 <doublevar> & drift, doublevar tau, drift_type dtype);
 
 //----------------------------------------------------------------------
-
+/*!
+ * Simple Metropolis Sampler
+ */
 class metropolis_sampler:public Dynamics_generator {
  public:
 
@@ -338,6 +340,44 @@ class metropolis_sampler:public Dynamics_generator {
 
   int showinfo(string & indent, ostream & os) {
     os << indent << "Metropolis Algorithm" << endl;
+    return 1;
+    }
+
+  int sample(int e,
+             Sample_point * sample, 
+             Wavefunction * wf, 
+             Wavefunction_data * wfdata, 
+             Guiding_function * guidewf,
+             Dynamics_info & info,
+             doublevar & efftimestep
+             );
+
+  void showStats(ostream & os) {
+    os << "acceptance " << acceptance/tries << endl;
+  }
+  void resetStats() {
+    acceptance=0; tries=0;
+  }
+ private:
+  doublevar acceptance;
+  long int tries;
+};
+
+/*!
+ * Metropolis with Drift Sampler
+ */
+class metropolisDrift_sampler:public Dynamics_generator {
+ public:
+
+  metropolisDrift_sampler() {
+    acceptance=0;
+    tries=0;
+  }
+
+  void read(vector <string> & words) {}
+
+  int showinfo(string & indent, ostream & os) {
+    os << indent << "Metropolis Algorithm with Drift" << endl;
     return 1;
     }
 
