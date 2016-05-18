@@ -1189,6 +1189,7 @@ int metropolis_sampler::sample(int e,
   
 }
 
+//------------------------------------------------------------------------------
 
 int metropolisDrift_sampler::sample(int e,
             Sample_point * sample,
@@ -1206,41 +1207,54 @@ int metropolisDrift_sampler::sample(int e,
   sample->getElectronPos(e,p1.pos);
   wf->getLap(wfdata, e, p1.lap);
   p1.sign=sample->overallSign();
+  guidewf->getLap(p1.lap, p1.drift);
+  limDrift(p1.drift,tstep,drift_cyrus);
 
   // Starting determination of move..
   Point p2; p2.lap.Resize(wf->nfunc(),5);
 
   // Gaussian move with drift
+  Array1 <doublevar> translate(3);
   for(int d=0; d< 3; d++) {
     //p1.lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
-    p2.pos(d)=p1.pos(d)+sqrt(tstep)*rng.gasdev()+p1.lap.amp(0,d+1)*tstep;
+    translate(d)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
+    p2.pos(d)=p1.pos(d)+translate(d);
   }
 
-  // Getting translation of the two points and calculating wavefunction
-  Array1 <doublevar> translate(3);
-  for(int d=0; d< 3; d++) translate(d)=p2.pos(d)-p1.pos(d);
   sample->translateElectron(e,translate);
   wf->updateLap(wfdata, sample);
   wf->getLap(wfdata, e, p2.lap);
   p2.sign=sample->overallSign();
+  guidewf->getLap(p2.lap, p2.drift);
+  limDrift(p2.drift,tstep,drift_cyrus);
 
   // Calculate G(x' -> x) and G(x -> x') probability density function
   doublevar lnGBack = 0;
   doublevar lnGForw = 0;
   for (int d=0; d<3; d++) {
-    lnGBack += pow(-translate(d) - p2.lap.amp(0,d+1)*tstep, 2);
-    lnGForw += pow(translate(d) - p1.lap.amp(0,d+1)*tstep, 2);
+    lnGBack += pow(-translate(d) - p2.drift(d), 2);
+    lnGForw += pow(translate(d) - p1.drift(d), 2);
   }
   lnGBack = lnGBack/(2*tstep);
   lnGForw = lnGForw/(2*tstep);
 
   // Calculate acceptance ratio with the probability density function
-  doublevar acc= exp(2*p2.lap.amp(0,0) - 2*p1.lap.amp(0,0) + lnGBack - lnGForw);
+  doublevar acc= exp(2*p2.lap.amp(0,0) - 2*p1.lap.amp(0,0) - lnGBack + lnGForw);
 
   info.acceptance=acc;
   info.orig_pos=p1.pos;
   info.new_pos=p2.pos;
   
+  /*
+  cout << "initial position " << p1.pos(0) << " " << p1.pos(1) << " "  << p1.pos(2) << endl;
+  cout << "final position " << p2.pos(0) << " " << p2.pos(1) << " "  << p2.pos(2) << endl;
+  cout << "initial gradient " << p1.lap.amp(0,1) << " " << p1.lap.amp(0,2) << " "  << p1.lap.amp(0,3) << endl;
+  cout << "final gradient " << p2.lap.amp(0,1) << " " << p2.lap.amp(0,2) << " "  << p2.lap.amp(0,3) << endl;
+  cout << "initial drift " << p1.drift(0) << " " << p1.drift(1) << " "  << p1.drift(2) << endl;
+  cout << "final drift " << p2.drift(0) << " " << p2.drift(1) << " "  << p2.drift(2) << endl;
+  cout << "wave function values" << p1.lap.amp(0,0) << " final " << p2.lap.amp(0,0) << endl;
+  cout << "acceptance " << acc << endl;
+*/
   // ACCEPT OR REJECT STEP
   if(acc+rng.ulec()>1.0) { 
     info.accepted=1;
@@ -1249,9 +1263,9 @@ int metropolisDrift_sampler::sample(int e,
   }
   else { 
     sample->setElectronPos(e,p1.pos);
+    wf->updateLap(wfdata,sample);
     info.accepted=0;
     return 0;
   }
-  
-  
+
 }
