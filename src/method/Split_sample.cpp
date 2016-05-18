@@ -1225,7 +1225,8 @@ int metropolisDrift_sampler::sample(int e,
   p2.sign=sample->overallSign();
 
   // Calculate G(x' -> x) and G(x -> x') probability density function
-  doublevar lnGBack, lnGForw;
+  doublevar lnGBack = 0;
+  doublevar lnGForw = 0;
   for (int d=0; d<3; d++) {
     lnGBack += pow(-translate(d) - p2.lap.amp(0,d+1)*tstep, 2);
     lnGForw += pow(translate(d) - p1.lap.amp(0,d+1)*tstep, 2);
