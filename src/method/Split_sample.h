@@ -401,6 +401,44 @@ class metropolisDrift_sampler:public Dynamics_generator {
   long int tries;
 };
 
+/*!
+ * Multi-Try Metropolis with Drift Sampler
+ */
+class GMTMDrift_sampler:public Dynamics_generator {
+ public:
+
+  GMTMDrift_sampler() {
+    acceptance=0;
+    tries=0;
+  }
+
+  void read(vector <string> & words) {}
+
+  int showinfo(string & indent, ostream & os) {
+    os << indent << "Multi-Try Metropolis Algorithm with Drift" << endl;
+    return 1;
+    }
+
+  int sample(int e,
+             Sample_point * sample, 
+             Wavefunction * wf, 
+             Wavefunction_data * wfdata, 
+             Guiding_function * guidewf,
+             Dynamics_info & info,
+             doublevar & efftimestep
+             );
+
+  void showStats(ostream & os) {
+    os << "acceptance " << acceptance/tries << endl;
+  }
+  void resetStats() {
+    acceptance=0; tries=0;
+  }
+ private:
+  doublevar acceptance;
+  long int tries;
+};
+
 #endif //SPLIT_SAMPLE_H_INCLUDED
 
 //----------------------------------------------------------------------
