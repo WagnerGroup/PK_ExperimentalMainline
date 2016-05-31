@@ -404,18 +404,24 @@ class metropolisDrift_sampler:public Dynamics_generator {
 /*!
  * Multi-Try Metropolis with Drift Sampler
  */
-class GMTMDrift_sampler:public Dynamics_generator {
+class GMTM_sampler:public Dynamics_generator {
  public:
 
-  GMTMDrift_sampler() {
+  GMTM_sampler() {
     acceptance=0;
     tries=0;
+    k=1;
+    dtype=drift_cyrus;
   }
 
-  void read(vector <string> & words) {}
+  void read(vector <string> & words);
+
+  void setDriftType(drift_type dtype_) {
+    dtype=dtype_;
+  }
 
   int showinfo(string & indent, ostream & os) {
-    os << indent << "Multi-Try Metropolis Algorithm with Drift" << endl;
+    os << indent << "General Multi-Try Metropolis Algorithm" << endl;
     return 1;
     }
 
@@ -437,6 +443,8 @@ class GMTMDrift_sampler:public Dynamics_generator {
  private:
   doublevar acceptance;
   long int tries;
+  int k;
+  drift_type dtype;
 };
 
 #endif //SPLIT_SAMPLE_H_INCLUDED

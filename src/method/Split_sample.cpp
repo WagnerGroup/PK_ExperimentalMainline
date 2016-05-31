@@ -33,7 +33,7 @@ int allocate(vector <string> & words, Dynamics_generator *& sam) {
   else if(caseless_eq(words[0],"METRODRIFT")) 
     sam=new metropolisDrift_sampler;
   else if(caseless_eq(words[0],"GMTM")) 
-    sam=new GMTMDrift_sampler;
+    sam=new GMTM_sampler;
   else 
     error("unknown type of sampler: ", words[0]);
 
@@ -1247,6 +1247,10 @@ int metropolisDrift_sampler::sample(int e,
   info.orig_pos=p1.pos;
   info.new_pos=p2.pos;
   
+  cout << "p2 psi " << p2.lap.amp(0,0) << endl;
+  cout << "p1 psi " << p1.lap.amp(0,0) << endl;
+  cout << "lnGback " << lnGBack << endl;
+  cout << "lnGForw " << lnGForw << endl;
   /*
   cout << "initial position " << p1.pos(0) << " " << p1.pos(1) << " "  << p1.pos(2) << endl;
   cout << "final position " << p2.pos(0) << " " << p2.pos(1) << " "  << p2.pos(2) << endl;
@@ -1274,19 +1278,36 @@ int metropolisDrift_sampler::sample(int e,
 
 //------------------------------------------------------------------------------
 
+void GMTM_sampler::read(vector <string> & words) {
+  unsigned int pos=0;
+  int numTrials;
+  if(readvalue(words, pos=0, numTrials, "NUM_TRIALS"))
+      k = numTrials;
+  string drifttype;
+  if(readvalue(words, pos=0, drifttype, "DRIFT_TYPE")) {
+    if(drifttype=="CYRUS")
+      setDriftType(drift_cyrus);
+    else if(drifttype=="CUTOFF")
+      setDriftType(drift_cutoff);
+    else error("Didn't understand DRIFT_TYPE ", drifttype);
+  }
+
+  
+}
+
 /*!
  * Importance weight of y where sampling distribution is T(x,y) and target is pi(y)
  * Input:
  *  Point y - Trial position
  *  Point x - Original position
  */
-int wMTM_I(Point y, Point x, Array1 <doublevar> translate, doublevar tstep) {
+int lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep) {
   doublevar lnGBack = 0;
   for (int d=0; d<3; d++) {
     lnGBack += pow(-translate(d) - y.drift(d), 2);
   }
-  lnGBack = -lnGBack/(2*tstep);
-  return exp(2*y.lap.amp(0,0) + lnGBack);
+  lnGBack = lnGBack/(2*tstep);
+  return 2*y.lap.amp(0,0) - lnGBack;
 }
 
 /*!
@@ -1296,26 +1317,25 @@ int wMTM_I(Point y, Point x, Array1 <doublevar> translate, doublevar tstep) {
  * Output:
  *  Chosen index based on the probability list
  */
-int chooseFromProbList(Array1 <doublevar> probList) {
-  // Draw from uniform random
-  double draw = rng.ulec();
-  int chosen = 0;
-  draw = draw - probList[chosen];
-  while (draw > 0) {
-      chosen = chosen + 1;
-      draw = draw - probList[chosen];
-  }
-  return chosen;
-}
+//int chooseFromProbList(Array1 <doublevar> & probList, int k) {
+//  // Draw from uniform random
+//  double draw = rng.ulec();
+//  int chosen = 0;
+//  draw = draw - probList[chosen];
+//  while (draw > 0 && chosen < k) {
+//      chosen = chosen + 1;
+//      draw = draw - probList[chosen];
+//  }
+//  return chosen;
+//}
 
-int GMTMDrift_sampler::sample(int e,
+int GMTM_sampler::sample(int e,
             Sample_point * sample,
 			Wavefunction * wf, Wavefunction_data * wfdata,
 			Guiding_function * guidewf, 
 			Dynamics_info & info,
 			doublevar & tstep) {
     
-  int k = 10;
   tries++;
   // Generate Point p1 from the wavefunction
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
@@ -1326,90 +1346,124 @@ int GMTMDrift_sampler::sample(int e,
   wf->getLap(wfdata, e, p1.lap);
   p1.sign=sample->overallSign();
   guidewf->getLap(p1.lap, p1.drift);
-  limDrift(p1.drift,tstep,drift_cyrus);
+  limDrift(p1.drift,tstep,dtype);
 
   // Starting determination of k moves..
-  Point trials[k];
-  Array2 <doublevar> translateForw(3,k);
-  Array1 <doublevar> wTrials(k);
-  doublevar wTrialsSum = 0;
+  Array1 <Point> trials(k);
+  Array2 <doublevar> translateForw(k,3);
+  Array1 <doublevar> lnwTrials(k);
 
   for (int i = 0; i < k; i++) {
-    trials[i].lap.Resize(wf->nfunc(),5);
+    trials(i).lap.Resize(wf->nfunc(),5);
     // Gaussian move with drift
     for(int d=0; d< 3; d++) {
       //p1.lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
-      translateForw(d,i)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
-      trials[i].pos(d)=p1.pos(d)+translateForw(d,i);
+      translateForw(i,d)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
+      trials(i).pos(d)=p1.pos(d)+translateForw(i,d);
     }
 
     // Find lap and drift of new point
-    sample->setElectronPos(e,trials[i].pos);
+    sample->setElectronPos(e,trials(i).pos);
     wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, e, trials[i].lap);
-    trials[i].sign=sample->overallSign();
-    guidewf->getLap(trials[i].lap, trials[i].drift);
-    limDrift(trials[i].drift,tstep,drift_cyrus);
+    wf->getLap(wfdata, e, trials(i).lap);
+    trials(i).sign=sample->overallSign();
+    guidewf->getLap(trials(i).lap, trials(i).drift);
+    limDrift(trials(i).drift,tstep,dtype);
 
     // Find w and probability
-    wTrials[i] = wMTM_I(trials[i], p1, translateForw(i), tstep);
-    wTrialsSum += wTrials[i];
+    Array1 <doublevar> translateForwTrial = translateForw(i);
+    lnwTrials(i) = lnwMTM_I(trials(i), p1, translateForwTrial, tstep);
   }
 
   // Find probability of each trial point
   Array1 <doublevar> probTrials(k);
+  doublevar sumProb = 0;
+  // Lucas Way
   for (int i = 0; i < k; i++) {
-    probTrials[i] = wTrials[i]/wTrialsSum;
+    probTrials(i) = 0;
+    for (int j = 0; j < k; j++) {
+      probTrials(i) += exp(lnwTrials(j) - lnwTrials(i));
+    }
+    probTrials(i) = 1/probTrials(i);
+    sumProb += probTrials(i);
   }
-  int chosenTrial = chooseFromProbList(probTrials);
-  cout << "chosen index: " << chosenTrial << " k= " << k << endl;
+
+  // PK Way ** Cheaper, but has significant truncation errors due to arbitrarily chosen normalization **
+  //doublevar lnwTrialsSum = lnwTrials(0);
+  //doublevar wTrialsNormalized = 1;
+  //for (int i = 1; i < k; i++) {
+  //  wTrialsNormalized += exp(lnwTrials(i) - lnwTrials(0));
+  //}
+  //lnwTrialsSum += log(wTrialsNormalized);
+
+  //for (int i = 0; i < k; i++) {
+  //    lnProbTrials(i) = lnwTrials(i) - lnwTrialsSum;
+  //    probTrials(i) = exp(lnProbTrials(i));
+  //}
+
+  // Choose trial based on list of probability
+  double draw = rng.ulec();
+  while (draw > sumProb) {
+      draw = rng.ulec();
+  }
+  int chosen = 0;
+  draw = draw - probTrials[chosen];
+  while (draw > 0) {
+      chosen = chosen + 1;
+      draw = draw - probTrials[chosen];
+  }
 
   // Starting determination of k moves..
-  Point realizations[k];
-  Array2 <doublevar> translateBack(3,k);
-  Array1 <doublevar> wRealizations(k);
-  doublevar wRealizationsSum = 0;
+  Array1 <Point> realizations(k);
+  Array2 <doublevar> translateBack(k,3);
+  Array1 <doublevar> lnwRealizations(k);
 
   for (int i = 0; i < k; i++) {
-    realizations[i].lap.Resize(wf->nfunc(),5);
+    realizations(i).lap.Resize(wf->nfunc(),5);
     // Gaussian move with drift
     if(i != k-1) {
       for(int d=0; d< 3; d++) {
-        //y[choseny].lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
-        translateBack(d,i)=sqrt(tstep)*rng.gasdev()+trials[chosenTrial].drift(d);
-        realizations[i].pos(d)=trials[chosenTrial].pos(d)+translateBack(d,i);
+        //y(choseny).lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
+        translateBack(i,d)=sqrt(tstep)*rng.gasdev()+trials(chosen).drift(d);
+        realizations(i).pos(d)=trials(chosen).pos(d)+translateBack(i,d);
       }
-    } else { // Hard set realization[k-1] to be p1
+    } else { // Hard set realization(k-1) to be p1
       for(int d=0; d< 3; d++) {
-        translateBack(d,i)=p1.pos(d) - trials[chosenTrial].pos(d);
-        realizations[i].pos(d)=p1.pos(d);
+        translateBack(i,d)=p1.pos(d) - trials(chosen).pos(d);
+        realizations(i).pos(d)=p1.pos(d);
       }
     }
 
     // Find lap and drift of new point
-    sample->setElectronPos(e,realizations[i].pos);
+    sample->setElectronPos(e,realizations(i).pos);
     wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, e, realizations[i].lap);
-    realizations[i].sign=sample->overallSign();
-    guidewf->getLap(realizations[i].lap, realizations[i].drift);
-    limDrift(realizations[i].drift,tstep,drift_cyrus);
+    wf->getLap(wfdata, e, realizations(i).lap);
+    realizations(i).sign=sample->overallSign();
+    guidewf->getLap(realizations(i).lap, realizations(i).drift);
+    limDrift(realizations(i).drift,tstep,dtype);
 
     // Find w and probability
-    wRealizations[i] = wMTM_I(realizations[i], trials[chosenTrial], translateBack(i), tstep);
-    wRealizationsSum += wRealizations[i];
+    Array1 <doublevar> translateBackTrial = translateBack(i);
+    lnwRealizations(i) = lnwMTM_I(realizations(i), trials(chosen), translateBackTrial, tstep);
   }
 
-  doublevar probP1 = wRealizations[k-1]/wRealizationsSum; 
+  doublevar probP1 = 0; 
+  for (int j = 0; j < k; j++) {
+    probP1 += exp(lnwTrials(j) - lnwTrials(k-1));
+  }
+  probP1 = 1/probP1;
+
 
   // Calculate acceptance ratio with the probability density function
-  doublevar acc= (wTrials[chosenTrial]*probP1)/(probTrials[chosenTrial]*wRealizations[k-1]);
+  doublevar acc= exp(lnwTrials(chosen) - lnwRealizations(k-1))*probP1/probTrials(chosen);
+
   // Set electron to chosen Trial and update wavefunction
-  sample->setElectronPos(e,trials[chosenTrial].pos);
+  sample->setElectronPos(e,trials(chosen).pos);
   wf->updateLap(wfdata, sample);
 
   info.acceptance=acc;
   info.orig_pos=p1.pos;
-  info.new_pos=trials[chosenTrial].pos;
+  info.new_pos=trials(chosen).pos;
   
   // ACCEPT OR REJECT STEP
   if(acc+rng.ulec()>1.0) { 
