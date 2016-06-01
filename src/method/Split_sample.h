@@ -418,7 +418,6 @@ class GMTM_sampler:public Dynamics_generator {
     scheme=scheme_;
   }
 
-
   int showinfo(string & indent, ostream & os) {
     os << indent << "General Multi-Try Metropolis Algorithm" << endl;
     return 1;
@@ -459,7 +458,10 @@ class GMTM_sampler:public Dynamics_generator {
   // MTM schemes
   int lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
   int lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
+<<<<<<< 4ed9b0bc921548d66e7994439ecf974c1d36c0c2
 
+=======
+>>>>>>> Merged conflicts
 };
 
 #endif //SPLIT_SAMPLE_H_INCLUDED
