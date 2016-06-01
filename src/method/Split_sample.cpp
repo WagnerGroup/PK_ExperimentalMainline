@@ -1292,22 +1292,41 @@ void GMTM_sampler::read(vector <string> & words) {
     else error("Didn't understand DRIFT_TYPE ", drifttype);
   }
 
+  string mtmScheme;
+  if(readvalue(words, pos=0, mtmScheme, "MTM_SCHEME")) {
+    if(mtmScheme=="MTM_INV")
+      setSchemeType(MTM_INV);
+    else if (mtmScheme=="MTM_I")
+      setSchemeType(MTM_I);
+    else error("Didn't understand MTM_SCHEME ", mtmScheme);
+  }
+
   
 }
 
 /*!
+ * Various schemes for
  * Importance weight of y where sampling distribution is T(x,y) and target is pi(y)
  * Input:
  *  Point y - Trial position
  *  Point x - Original position
  */
-int lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep) {
+int GMTM_sampler::lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep) {
   doublevar lnGBack = 0;
   for (int d=0; d<3; d++) {
     lnGBack += pow(-translate(d) - y.drift(d), 2);
   }
   lnGBack = lnGBack/(2*tstep);
   return 2*y.lap.amp(0,0) - lnGBack;
+}
+
+int GMTM_sampler::lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep) {
+  doublevar lnGForw = 0;
+  for (int d=0; d<3; d++) {
+    lnGForw += pow(translate(d) - x.drift(d), 2);
+  }
+  lnGForw = lnGForw/(2*tstep);
+  return 2*y.lap.amp(0,0) + lnGForw;
 }
 
 /*!
@@ -1335,11 +1354,11 @@ int GMTM_sampler::sample(int e,
 			Guiding_function * guidewf, 
 			Dynamics_info & info,
 			doublevar & tstep) {
-    
+
   tries++;
   // Generate Point p1 from the wavefunction
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
-  
+
   // Calculate wave function for p1
   wf->updateLap(wfdata, sample);
   sample->getElectronPos(e,p1.pos);
@@ -1357,7 +1376,6 @@ int GMTM_sampler::sample(int e,
     trials(i).lap.Resize(wf->nfunc(),5);
     // Gaussian move with drift
     for(int d=0; d< 3; d++) {
-      //p1.lap.amp(0,d) returns the grad in d where d is {1, 2, ...}
       translateForw(i,d)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
       trials(i).pos(d)=p1.pos(d)+translateForw(i,d);
     }
@@ -1372,7 +1390,11 @@ int GMTM_sampler::sample(int e,
 
     // Find w and probability
     Array1 <doublevar> translateForwTrial = translateForw(i);
-    lnwTrials(i) = lnwMTM_I(trials(i), p1, translateForwTrial, tstep);
+    if (scheme==MTM_I) {
+      lnwTrials(i) = lnwMTM_I(trials(i), p1, translateForwTrial, tstep);
+    } else {
+      lnwTrials(i) = lnwMTM_INV(trials(i), p1, translateForwTrial, tstep);
+    }
   }
 
   // Find probability of each trial point
@@ -1444,7 +1466,12 @@ int GMTM_sampler::sample(int e,
 
     // Find w and probability
     Array1 <doublevar> translateBackTrial = translateBack(i);
-    lnwRealizations(i) = lnwMTM_I(realizations(i), trials(chosen), translateBackTrial, tstep);
+    if (scheme==MTM_I) {
+      lnwRealizations(i) = lnwMTM_I(realizations(i), trials(chosen), translateBackTrial, tstep);
+    } else {
+      lnwRealizations(i) = lnwMTM_INV(realizations(i), trials(chosen), translateBackTrial, tstep);
+    }
+
   }
 
   doublevar probP1 = 0; 
@@ -1464,14 +1491,14 @@ int GMTM_sampler::sample(int e,
   info.acceptance=acc;
   info.orig_pos=p1.pos;
   info.new_pos=trials(chosen).pos;
-  
+
   // ACCEPT OR REJECT STEP
-  if(acc+rng.ulec()>1.0) { 
+  if(acc+rng.ulec()>1.0) {
     info.accepted=1;
     acceptance++;
     return 1;
   }
-  else { 
+  else {
     sample->setElectronPos(e,p1.pos);
     wf->updateLap(wfdata,sample);
     info.accepted=0;

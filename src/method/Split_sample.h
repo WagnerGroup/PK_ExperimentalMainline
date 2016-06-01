@@ -1,5 +1,5 @@
 /*
- 
+
 Copyright (C) 2007 Lucas K. Wagner
 
 This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- 
+
 */
 
 
@@ -60,10 +60,10 @@ struct Dynamics_info {
   int accepted;
   //Array2 <doublevar> newlap;
   doublevar diffusion_rate;
-  
+
   doublevar symm_gf; //!< ratio versus symmetrized green's function
   doublevar resample_gf; //!< green's function that we want to resample
-  Dynamics_info() { 
+  Dynamics_info() {
      symm_gf=1;
   }
 };
@@ -73,16 +73,16 @@ class Dynamics_generator {
  public:
   virtual void read(vector <string> & words)=0;
   virtual int sample(int e,
-                     Sample_point * sample, 
-                     Wavefunction * wf, 
-                     Wavefunction_data * wfdata, 
+                     Sample_point * sample,
+                     Wavefunction * wf,
+                     Wavefunction_data * wfdata,
                      Guiding_function * guidewf,
                      Dynamics_info & info,
                      doublevar & efftimestep
                      )=0;
 
 
-  //returns the acceptance ratio                                  
+  //returns the acceptance ratio
   virtual doublevar greenFunction(Sample_point * sample, Wavefunction * wf,
                      Wavefunction_data * wfdata, Guiding_function * guidewf,
                              int e,
@@ -131,7 +131,7 @@ class Split_sampler:public Dynamics_generator {
   void setDriftType(drift_type dtype_) {
     dtype=dtype_;
   }
-  
+
   int showinfo(string & indent, ostream & os) {
     os << indent << "recursion depth " << recursion_depth_ << endl;
     os << indent << "timestep divider " << divide_ << endl;
@@ -157,20 +157,20 @@ class Split_sampler:public Dynamics_generator {
   }
 
   /*!
-    Returns the step that was accepted, or 0 if 
+    Returns the step that was accepted, or 0 if
     there was a rejection.
   */
   int sample(int e,
-             Sample_point * sample, 
-             Wavefunction * wf, 
-             Wavefunction_data * wfdata, 
+             Sample_point * sample,
+             Wavefunction * wf,
+             Wavefunction_data * wfdata,
              Guiding_function * guidewf,
              Dynamics_info & info,
              doublevar & efftimestep
              );
   int split_driver(int e,
                    Sample_point * sample,
-                   Wavefunction * wf, 
+                   Wavefunction * wf,
                    Wavefunction_data * wfdata,
                    Guiding_function * guidewf,
                    int depth,
@@ -184,21 +184,21 @@ class Split_sampler:public Dynamics_generator {
   //                           Dynamics_info & info);
 
   doublevar get_acceptance(Guiding_function * guidingwf, int x, int y);
-  
+
   void showStats(ostream & os);
   void resetStats();
  private:
- 
+
   doublevar transition_prob(int point1, int point2,
-                            doublevar timestep, 
+                            doublevar timestep,
                             drift_type dtype);
-  
+
   drift_type dtype;
   Array1 <Point> trace;
   Array1 <doublevar> timesteps;
   int recursion_depth_;
   doublevar divide_;
-  
+
   Array1 <doublevar> acceptances;
   Array1 <long int > tries;
 
@@ -208,12 +208,12 @@ class Split_sampler:public Dynamics_generator {
 
 
 doublevar transition_prob(Point &  point1, Point & point2,
-                          doublevar timestep, 
+                          doublevar timestep,
                           drift_type dtype);
 
 
 /*!
-sampler from Umrigar, Nightingale, and Runge. 
+sampler from Umrigar, Nightingale, and Runge.
 JCP 99 2865 (1993)
  */
 class UNR_sampler:public Dynamics_generator {
@@ -229,7 +229,7 @@ class UNR_sampler:public Dynamics_generator {
 
   void setDriftType(drift_type dtype_) {
   }
-  
+
   int showinfo(string & indent, ostream & os) {
     os << "UNR sampler " << endl;
     if(restrict_nodes) os << indent << "restricting node crossings" << endl;
@@ -237,15 +237,15 @@ class UNR_sampler:public Dynamics_generator {
   }
 
   void getDriftEtc(Point & pt, Sample_point * sample,
-		   doublevar tstep, int e,
-		   doublevar & exponent, //!< exponent at which to do an exponential move
-		   doublevar & probability,//!< probability to do an exponential move
-		   Array1 <doublevar> & rnuc //!<position of closest ion
-		   );
+       doublevar tstep, int e,
+       doublevar & exponent, //!< exponent at which to do an exponential move
+       doublevar & probability,//!< probability to do an exponential move
+       Array1 <doublevar> & rnuc //!<position of closest ion
+       );
   int sample(int e,
-             Sample_point * sample, 
-             Wavefunction * wf, 
-             Wavefunction_data * wfdata, 
+             Sample_point * sample,
+             Wavefunction * wf,
+             Wavefunction_data * wfdata,
              Guiding_function * guidewf,
              Dynamics_info & info,
              doublevar & efftimestep
@@ -269,9 +269,9 @@ class SRK_dmc:public Dynamics_generator {
       dtype=drift_cyrus;
     }
     int sample(int e,
-               Sample_point * sample, 
-               Wavefunction * wf, 
-               Wavefunction_data * wfdata, 
+               Sample_point * sample,
+               Wavefunction * wf,
+               Wavefunction_data * wfdata,
                Guiding_function * guidewf,
                Dynamics_info & info,
                doublevar & efftimestep
@@ -289,7 +289,7 @@ class SRK_dmc:public Dynamics_generator {
   void setDriftType(drift_type dtype_) {
     dtype=dtype_;
   }
-  
+
     void showStats(ostream & os) {
       os << "acceptance " << acceptances/tries <<  " average retries " << doublevar(retries)/doublevar(tries) << endl;
       os << "nbottom " << nbottom << endl;
@@ -299,8 +299,8 @@ class SRK_dmc:public Dynamics_generator {
       retries=0; nbottom=0;
     }
   private:
-    int rk_step(int e, Sample_point * sample, 
-        Wavefunction * wf,Wavefunction_data * wfdata, 
+    int rk_step(int e, Sample_point * sample,
+        Wavefunction * wf,Wavefunction_data * wfdata,
         Guiding_function * guidingwf, Dynamics_info & info,
         doublevar & timestep, Array1 <Point> & trace);
     //Array1 <Point> trace;
@@ -316,7 +316,7 @@ class SRK_dmc:public Dynamics_generator {
     bool third_move; //!< Whether to do a third predictor-corrector move
     ofstream diagnostics_print;
 
- 
+
 };
 
 
@@ -344,9 +344,9 @@ class metropolis_sampler:public Dynamics_generator {
     }
 
   int sample(int e,
-             Sample_point * sample, 
-             Wavefunction * wf, 
-             Wavefunction_data * wfdata, 
+             Sample_point * sample,
+             Wavefunction * wf,
+             Wavefunction_data * wfdata,
              Guiding_function * guidewf,
              Dynamics_info & info,
              doublevar & efftimestep
@@ -382,9 +382,9 @@ class metropolisDrift_sampler:public Dynamics_generator {
     }
 
   int sample(int e,
-             Sample_point * sample, 
-             Wavefunction * wf, 
-             Wavefunction_data * wfdata, 
+             Sample_point * sample,
+             Wavefunction * wf,
+             Wavefunction_data * wfdata,
              Guiding_function * guidewf,
              Dynamics_info & info,
              doublevar & efftimestep
@@ -404,15 +404,9 @@ class metropolisDrift_sampler:public Dynamics_generator {
 /*!
  * Multi-Try Metropolis with Drift Sampler
  */
+enum scheme_type {MTM_I, MTM_INV};
 class GMTM_sampler:public Dynamics_generator {
  public:
-
-  GMTM_sampler() {
-    acceptance=0;
-    tries=0;
-    k=1;
-    dtype=drift_cyrus;
-  }
 
   void read(vector <string> & words);
 
@@ -420,35 +414,54 @@ class GMTM_sampler:public Dynamics_generator {
     dtype=dtype_;
   }
 
+  void setSchemeType(scheme_type scheme_) {
+    scheme=scheme_;
+  }
+
+
   int showinfo(string & indent, ostream & os) {
     os << indent << "General Multi-Try Metropolis Algorithm" << endl;
     return 1;
     }
 
+  void showStats(ostream & os) {
+  os << "acceptance " << acceptance/tries << endl;
+}
+
+  void resetStats() {
+  acceptance=0; tries=0;
+}
+
+  GMTM_sampler() {
+  acceptance=0;
+  tries=0;
+  k=1;
+  dtype=drift_cyrus;
+  scheme=MTM_I;
+}
+
+
   int sample(int e,
-             Sample_point * sample, 
-             Wavefunction * wf, 
-             Wavefunction_data * wfdata, 
+             Sample_point * sample,
+             Wavefunction * wf,
+             Wavefunction_data * wfdata,
              Guiding_function * guidewf,
              Dynamics_info & info,
              doublevar & efftimestep
              );
 
-  void showStats(ostream & os) {
-    os << "acceptance " << acceptance/tries << endl;
-  }
-  void resetStats() {
-    acceptance=0; tries=0;
-  }
  private:
   doublevar acceptance;
   long int tries;
   int k;
   drift_type dtype;
+  scheme_type scheme;
+  // MTM schemes
+  int lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
+  int lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
+
 };
 
 #endif //SPLIT_SAMPLE_H_INCLUDED
 
 //----------------------------------------------------------------------
-
-
