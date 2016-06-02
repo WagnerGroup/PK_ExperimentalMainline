@@ -1247,10 +1247,6 @@ int metropolisDrift_sampler::sample(int e,
   info.orig_pos=p1.pos;
   info.new_pos=p2.pos;
   
-  cout << "p2 psi " << p2.lap.amp(0,0) << endl;
-  cout << "p1 psi " << p1.lap.amp(0,0) << endl;
-  cout << "lnGback " << lnGBack << endl;
-  cout << "lnGForw " << lnGForw << endl;
   /*
   cout << "initial position " << p1.pos(0) << " " << p1.pos(1) << " "  << p1.pos(2) << endl;
   cout << "final position " << p2.pos(0) << " " << p2.pos(1) << " "  << p2.pos(2) << endl;
