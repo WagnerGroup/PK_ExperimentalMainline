@@ -1325,25 +1325,6 @@ int GMTM_sampler::lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translat
   return 2*y.lap.amp(0,0) + lnGForw;
 }
 
-/*!
- * Choose an index from a probability list
- * Input:
- *  ProbList - Probablity list that is normalized so sum of probability is 1
- * Output:
- *  Chosen index based on the probability list
- */
-//int chooseFromProbList(Array1 <doublevar> & probList, int k) {
-//  // Draw from uniform random
-//  double draw = rng.ulec();
-//  int chosen = 0;
-//  draw = draw - probList[chosen];
-//  while (draw > 0 && chosen < k) {
-//      chosen = chosen + 1;
-//      draw = draw - probList[chosen];
-//  }
-//  return chosen;
-//}
-
 int GMTM_sampler::sample(int e,
             Sample_point * sample,
 			Wavefunction * wf, Wavefunction_data * wfdata,
