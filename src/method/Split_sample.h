@@ -456,12 +456,8 @@ class GMTM_sampler:public Dynamics_generator {
   drift_type dtype;
   scheme_type scheme;
   // MTM schemes
-  int lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
-  int lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
-<<<<<<< 4ed9b0bc921548d66e7994439ecf974c1d36c0c2
-
-=======
->>>>>>> Merged conflicts
+  doublevar lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
+  doublevar lnwMTM_INV(Point & y, Point & x, Array1 <doublevar> & translate, doublevar & tstep);
 };
 
 #endif //SPLIT_SAMPLE_H_INCLUDED
