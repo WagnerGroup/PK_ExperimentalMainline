@@ -1313,8 +1313,8 @@ doublevar GMTM_sampler::lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & tran
     lnGBack += pow(-translate(d) - y.drift(d), 2);
   }
   lnGBack = lnGBack/(2*tstep);
-  cout << "lnGBack: " << lnGBack << endl;
-  cout << "lnPsi2: " << 2*y.lap.amp(0,0) << endl;
+  // cout << "lnGBack: " << lnGBack << endl;
+  // cout << "lnPsi2: " << 2*y.lap.amp(0,0) << endl;
   return 2*y.lap.amp(0,0) - lnGBack;
 }
 
@@ -1357,7 +1357,7 @@ int GMTM_sampler::sample(int e,
     for(int d=0; d< 3; d++) {
       translateForw(i,d)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
       trials(i).pos(d)=p1.pos(d)+translateForw(i,d);
-      cout << "Trial Pos " << i << ": " << trials(i).pos(d) << endl;
+      // cout << "Trial Pos " << i << ": " << trials(i).pos(d) << endl;
     }
 
     // Find lap and drift of new point
@@ -1375,24 +1375,24 @@ int GMTM_sampler::sample(int e,
     } else {
       lnwTrials(i) = lnwMTM_INV(trials(i), p1, translateForwTrial, tstep);
     }
-    cout << "lnwTrials " << i << ": " << lnwTrials(i) << endl;
+    // cout << "lnwTrials " << i << ": " << lnwTrials(i) << endl;
   }
 
   // Find probability of each trial point
   Array1 <doublevar> probTrials(k);
   doublevar sumProb = 0;
   // Lucas Way
-  cout << "Probabilities: " << endl;
+  // cout << "Probabilities: " << endl;
   for (int i = 0; i < k; i++) {
     probTrials(i) = 0;
     for (int j = 0; j < k; j++) {
       probTrials(i) += exp(lnwTrials(j) - lnwTrials(i));
     }
     probTrials(i) = 1/probTrials(i);
-    cout << "Prob of " << i << ": " << probTrials(i) << endl;
+    // cout << "Prob of " << i << ": " << probTrials(i) << endl;
     sumProb += probTrials(i);
   }
-  cout << "SumProb " << sumProb << endl;
+  // cout << "SumProb " << sumProb << endl;
 
   // PK Way ** Cheaper, but has significant truncation errors due to arbitrarily chosen normalization **
   //doublevar lnwTrialsSum = lnwTrials(0);
@@ -1469,7 +1469,7 @@ int GMTM_sampler::sample(int e,
 
   doublevar probP1 = 0; 
   for (int j = 0; j < k; j++) {
-    probP1 += exp(lnwTrials(j) - lnwTrials(k-1));
+    probP1 += exp(lnwRealizations(j) - lnwRealizations(k-1));
   }
   probP1 = 1/probP1;
 
