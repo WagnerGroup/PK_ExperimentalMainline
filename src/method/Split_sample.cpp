@@ -1246,17 +1246,6 @@ int metropolisDrift_sampler::sample(int e,
   info.acceptance=acc;
   info.orig_pos=p1.pos;
   info.new_pos=p2.pos;
-  
-  /*
-  cout << "initial position " << p1.pos(0) << " " << p1.pos(1) << " "  << p1.pos(2) << endl;
-  cout << "final position " << p2.pos(0) << " " << p2.pos(1) << " "  << p2.pos(2) << endl;
-  cout << "initial gradient " << p1.lap.amp(0,1) << " " << p1.lap.amp(0,2) << " "  << p1.lap.amp(0,3) << endl;
-  cout << "final gradient " << p2.lap.amp(0,1) << " " << p2.lap.amp(0,2) << " "  << p2.lap.amp(0,3) << endl;
-  cout << "initial drift " << p1.drift(0) << " " << p1.drift(1) << " "  << p1.drift(2) << endl;
-  cout << "final drift " << p2.drift(0) << " " << p2.drift(1) << " "  << p2.drift(2) << endl;
-  cout << "wave function values" << p1.lap.amp(0,0) << " final " << p2.lap.amp(0,0) << endl;
-  cout << "acceptance " << acc << endl;
-*/
   // ACCEPT OR REJECT STEP
   if(acc+rng.ulec()>1.0) { 
     info.accepted=1;
