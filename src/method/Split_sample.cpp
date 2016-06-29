@@ -1274,6 +1274,9 @@ int metropolisDrift_sampler::sample(int e,
 
 //------------------------------------------------------------------------------
 
+#include <omp.h>
+#include <ctime>
+
 void GMTM_sampler::read(vector <string> & words) {
   unsigned int pos=0;
   int numTrials;
@@ -1301,8 +1304,7 @@ void GMTM_sampler::read(vector <string> & words) {
 }
 
 /*!
- * Various schemes for
- * Importance weight of y where sampling distribution is T(x,y) and target is pi(y)
+ * Two schemes for weight of y where sampling distribution is T(x,y) and target is pi(y)
  * Input:
  *  Point y - Trial position
  *  Point x - Original position
@@ -1313,8 +1315,6 @@ doublevar GMTM_sampler::lnwMTM_I(Point & y, Point & x, Array1 <doublevar> & tran
     lnGBack += pow(-translate(d) - y.drift(d), 2);
   }
   lnGBack = lnGBack/(2*tstep);
-  // cout << "lnGBack: " << lnGBack << endl;
-  // cout << "lnPsi2: " << 2*y.lap.amp(0,0) << endl;
   return 2*y.lap.amp(0,0) - lnGBack;
 }
 
@@ -1335,7 +1335,6 @@ int GMTM_sampler::sample(int e,
 			doublevar & tstep) {
 
   tries++;
-  // Generate Point p1 from the wavefunction
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
 
   // Calculate wave function for p1
@@ -1357,7 +1356,6 @@ int GMTM_sampler::sample(int e,
     for(int d=0; d< 3; d++) {
       translateForw(i,d)=sqrt(tstep)*rng.gasdev()+p1.drift(d);
       trials(i).pos(d)=p1.pos(d)+translateForw(i,d);
-      // cout << "Trial Pos " << i << ": " << trials(i).pos(d) << endl;
     }
 
     // Find lap and drift of new point
@@ -1375,58 +1373,33 @@ int GMTM_sampler::sample(int e,
     } else {
       lnwTrials(i) = lnwMTM_INV(trials(i), p1, translateForwTrial, tstep);
     }
-    // cout << "lnwTrials " << i << ": " << lnwTrials(i) << endl;
   }
 
   // Find probability of each trial point
   Array1 <doublevar> probTrials(k);
   doublevar sumProb = 0;
-  // Lucas Way
-  // cout << "Probabilities: " << endl;
   for (int i = 0; i < k; i++) {
-    probTrials(i) = 0;
+    doublevar invProb = 0;
     for (int j = 0; j < k; j++) {
-      probTrials(i) += exp(lnwTrials(j) - lnwTrials(i));
+      invProb += exp(lnwTrials(j) - lnwTrials(i));
     }
-    probTrials(i) = 1/probTrials(i);
-    // cout << "Prob of " << i << ": " << probTrials(i) << endl;
+    probTrials(i) = 1/invProb;
     sumProb += probTrials(i);
   }
-  // cout << "SumProb " << sumProb << endl;
-
-  // PK Way ** Cheaper, but has significant truncation errors due to arbitrarily chosen normalization **
-  //doublevar lnwTrialsSum = lnwTrials(0);
-  //doublevar wTrialsNormalized = 1;
-  //for (int i = 1; i < k; i++) {
-  //  wTrialsNormalized += exp(lnwTrials(i) - lnwTrials(0));
-  //}
-  //lnwTrialsSum += log(wTrialsNormalized);
-
-  //for (int i = 0; i < k; i++) {
-  //    lnProbTrials(i) = lnwTrials(i) - lnwTrialsSum;
-  //    probTrials(i) = exp(lnProbTrials(i));
-  //}
 
   // Choose trial based on list of probability
   double draw = rng.ulec();
+  int chosen = 0;
   while (draw > sumProb) {
       draw = rng.ulec();
   }
-  //cout << "Rand Num: " << draw << endl;
-  int chosen = 0;
   for (int i = 0; i < k; i++) {
     if (draw < probTrials[i]) {
       chosen = i;
-      //cout << "Draw index: " << i << endl;
       break;
     }
     draw -= probTrials[i];
   }
-  //draw = draw - probTrials[chosen];
-  //while (draw > 0) {
-  //    chosen = chosen + 1;
-  //    draw = draw - probTrials[chosen];
-  //}
 
   // Starting determination of k moves..
   Array1 <Point> realizations(k);
@@ -1464,7 +1437,6 @@ int GMTM_sampler::sample(int e,
     } else {
       lnwRealizations(i) = lnwMTM_INV(realizations(i), trials(chosen), translateBackTrial, tstep);
     }
-
   }
 
   doublevar probP1 = 0; 
@@ -1481,6 +1453,7 @@ int GMTM_sampler::sample(int e,
   sample->setElectronPos(e,trials(chosen).pos);
   wf->updateLap(wfdata, sample);
 
+  // Record Acceptance and position
   info.acceptance=acc;
   info.orig_pos=p1.pos;
   info.new_pos=trials(chosen).pos;
@@ -1497,5 +1470,4 @@ int GMTM_sampler::sample(int e,
     info.accepted=0;
     return 0;
   }
-
 }
